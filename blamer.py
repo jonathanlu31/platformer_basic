@@ -18,34 +18,57 @@ class Player():
         self.y = y
         self.width = width
         self.height = height
-        self.vel = 5
+        self.vel = 10
         self.isJump = False
         self.jumpConst = 6
         self.left = False
         self.right = False
         self.walkCount = 0
+        self.standing = True
 
     def draw(self, win):
         if self.walkCount >= 26:
             self.walkCount = 0
 
-        if self.left:
-            win.blit(walkLeft[self.walkCount//3], (self.x, self.y))
-            self.walkCount += 1
-        elif self.right:
-            win.blit(walkRight[self.walkCount//3], (self.x, self.y))
-            self.walkCount += 1
+        #cycles through the various frames
+        if not self.standing:
+            if self.left:
+                win.blit(walkLeft[self.walkCount//3], (self.x, self.y))
+                self.walkCount += 1
+            else:
+                win.blit(walkRight[self.walkCount//3], (self.x, self.y))
+                self.walkCount += 1
         else:
-            win.blit(char, (self.x, self.y))
+            if self.left:
+                win.blit(walkLeft[0], (self.x, self.y))
+            elif self.right:
+                win.blit(walkRight[0], (self.x, self.y))
+            else:
+                win.blit(char, (self.x, self.y))
+
+class Projectile():
+    def __init__(self, x, y, radius, color, direction):
+        self.x = x
+        self.y = y
+        self.radius = radius
+        self.color = color
+        self.direction = direction
+        self.vel = 13 * direction
+
+    def draw(self, win):
+        pygame.draw.circle(win, self.color, (self.x, self.y), self.radius)
 
 #draw function
 def redrawGameWindow():
     win.blit(bg, (0, 0))
     man.draw(win)
+    for bullet in bullets:
+        bullet.draw(win)
     pygame.display.update()
 
 #main loop
 man = Player(300, 410, 64, 64)
+bullets = []
 run = True
 while run:
     clock.tick(27)
@@ -54,30 +77,46 @@ while run:
         if event.type == pygame.QUIT:
             run = False
 
+    for bullet in bullets:
+        if bullet.x < 500 and bullet.x > 0:
+            bullet.x += bullet.vel
+        else:
+            bullets.remove(bullet)
+
     keys = pygame.key.get_pressed()
 
-    if keys[pygame.K_LEFT]:
+    if keys[pygame.K_SPACE]:
+        if man.left:
+            facing = -1
+        else:
+            facing = 1
+
+        if len(bullets) < 5:
+            bullets.append(Projectile(man.x + man.width // 2, man.y + man.height // 2, 6, (0, 0, 0), facing))
+
+    if keys[pygame.K_LEFT] or keys[pygame.K_a]:
         if man.x > man.vel:
             man.x -= man.vel
         else:
             man.x -= man.x
         man.left = True
         man.right = False
+        man.standing = False
 
-    elif keys[pygame.K_RIGHT]:
+    elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
         if man.x < 500 - man.vel - man.width:
             man.x += man.vel
         else:
             man.x += 500 - man.width - man.x
         man.right = True
         man.left = False
+        man.standing = False
     else:
-        man.right = False
-        man.left = False
+        man.standing = True
         man.walkCount = 0
 
     if not man.isJump:
-        if keys[pygame.K_SPACE]:
+        if keys[pygame.K_UP] or keys[pygame.K_w]:
             man.isJump = True
     else:
         if man.jumpConst >= -6:
