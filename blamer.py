@@ -25,6 +25,7 @@ class Player():
         self.right = False
         self.walkCount = 0
         self.standing = True
+        self.hitbox = (self.x + 17, self.y + 11, 29, 52)
 
     def draw(self, win):
         if self.walkCount >= 27:
@@ -45,6 +46,8 @@ class Player():
                 win.blit(walkRight[0], (self.x, self.y))
             else:
                 win.blit(char, (self.x, self.y))
+        self.hitbox = (self.x + 17, self.y + 11, 29, 52)
+        pygame.draw.rect(win, (255, 0, 0), self.hitbox, 2)
 
 class Projectile():
     def __init__(self, x, y, radius, color, direction):
@@ -71,6 +74,7 @@ class Enemy():
         self.end = end
         self.walkCount = 0
         self.vel = 6
+        self.hitbox = (self.x + 17, self.y + 2, 31, 57)
 
     def draw(self, win):
         self.move()
@@ -83,6 +87,8 @@ class Enemy():
         else:
             win.blit(self.walkLeft[self.walkCount // 3], (self.x, self.y))
             self.walkCount += 1
+        self.hitbox = (self.x + 17, self.y + 2, 31, 57)
+        pygame.draw.rect(win, (255, 0, 0), self.hitbox, 2)
 
     def move(self):
         if self.vel > 0:
@@ -98,6 +104,8 @@ class Enemy():
                 self.vel *= -1
                 self.walkCount = 0
 
+    def hit(self):
+        print('Hit!')
 
 #draw function
 def redrawGameWindow():
@@ -112,15 +120,26 @@ def redrawGameWindow():
 man = Player(300, 405, 64, 64)
 goblin = Enemy(100, 410, 64, 64, 450)
 bullets = []
+shootDelay = 0
 run = True
 while run:
     clock.tick(27)
+
+    if shootDelay > 0:
+        shootDelay += 1
+    if shootDelay > 5:
+        shootDelay = 0
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
 
     for bullet in bullets:
+        if bullet.y - bullet.radius < goblin.hitbox[1] + goblin.hitbox[3] and bullet.y + bullet.radius > goblin.hitbox[1]:
+            if bullet.x + bullet.radius > goblin.hitbox[0] and bullet.x - bullet.radius < goblin.hitbox[0] + goblin.hitbox[2]:
+                goblin.hit()
+                bullets.remove(bullet)
+
         if bullet.x < 500 and bullet.x > 0:
             bullet.x += bullet.vel
         else:
@@ -128,7 +147,7 @@ while run:
 
     keys = pygame.key.get_pressed()
 
-    if keys[pygame.K_SPACE]:
+    if keys[pygame.K_SPACE] and shootDelay == 0:
         if man.left:
             facing = -1
         else:
@@ -136,6 +155,8 @@ while run:
 
         if len(bullets) < 5:
             bullets.append(Projectile(man.x + man.width // 2, man.y + man.height // 2, 6, (0, 0, 0), facing))
+
+        shootDelay = 1
 
     if keys[pygame.K_LEFT] or keys[pygame.K_a]:
         if man.x > man.vel:
